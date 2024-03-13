@@ -1,8 +1,12 @@
 ## Data used in the manuscript
 
-- Raw sequencing reads that are newly published with this paper are under SRA BioProject [PRJNA1086943 ](https://www.ncbi.nlm.nih.gov/sra/?term=PRJNA1086943)
+### Raw sequencing reads
+- Raw sequencing reads that are newly published with this paper are under SRA BioProject [PRJNA1086943](https://www.ncbi.nlm.nih.gov/sra/?term=PRJNA1086943).
+  
 - Raw sequencing reads that were previously published can be found with these accession numbers:
 <img width="457" alt="image" src="https://github.com/chanzuckerberg/czid-amr-manuscript-2024/assets/20667188/0836e73f-3c38-4b10-881f-96dc6596d4d5">
+
+### Processed data
 
 - All processed data can be downloaded from CZ ID public project `AMR_paper_2024`. 
 
@@ -35,3 +39,13 @@
 
 
 - A copy of the data downloaded from CZ ID, which was used for this manuscript, can be found in the [results folder](https://github.com/chanzuckerberg/czid-amr-manuscript-2024/tree/main/results) with names `amr_paper_2023_5929.zip` and `combined_amr_results.csv`.
+
+
+### Host-filtered sequencing reads
+
+- These reads can be downloaded from the `Metagenomics` tab Download button:
+<img width="484" alt="image" src="https://github.com/chanzuckerberg/czid-amr-manuscript-2024/assets/20667188/105b4c0f-bcd1-458f-8e20-188c2aa4c499">
+
+- They are the input files for SKA2 for the SNP distance analysis.
+
+- Note these fastq files have unpaired reads which were removed (by [this code](https://github.com/chanzuckerberg/czid-amr-manuscript-2024/blob/main/code/Run_remove_unpaired.sh)) before SRA submission.
