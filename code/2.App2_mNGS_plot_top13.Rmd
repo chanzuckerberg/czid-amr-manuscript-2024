@@ -1,0 +1,84 @@
+---
+title: "Plots for Application 2: species in mNGS samples"
+author: CZ ID
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r}
+# global_options
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, echo=T)
+```
+
+```{r include=FALSE}
+library(tidyverse)
+library(magrittr)
+options(tibble.width = Inf)
+options(scipen=999)
+```
+
+
+Define dataset
+```{r}
+dataset_number = "App2"
+```
+
+
+Load metadata
+```{r}
+meta <- read.delim(paste0("dataset_ID_metadata_", dataset_number, ".tsv")) %>% filter(type=="mNGS")
+```
+
+
+Load and prep mNGS table
+```{r}
+filename_list = list.files(path = "./amr_paper_2023_5929/", pattern="App2.*._mNGS_.*._taxon_report.csv", full.names = T) # Background is AMR_paper_App2_standard_background
+
+file_list = lapply(filename_list, read.csv) 
+
+names(file_list) = stringr::str_replace(basename(filename_list), pattern = "_taxon_report.csv", replacement = "")
+
+mgs = lapply(names(file_list), function(nm) mutate(file_list[[nm]], sample_name=str_sub(nm, end = -8))) %>% purrr::reduce(bind_rows) %>%
+    filter(nt_rpm > 10 & nr_rpm > 10 & nt_alignment_length > 50) %>% 
+    filter(nt_z_score >=2) %>% 
+    filter(name !="all taxa with neither family nor genus classification")     
+
+```
+
+
+
+
+Plot only cluster
+
+```{r}
+samples_in_cluster = c("pt74","pt61","pt59","pt64","pt75","pt60","pt79","pt69","pt76")
+```
+
+
+
+```{r}
+# focus on genus level (tax_level == 2)
+mgs0 = inner_join(meta, mgs, by="sample_name") %>%  filter(tax_level==2) 
+
+# keep the most abundant 2 genus in each sample to be colored later
+# all other genus will be grey
+top2_genus = mgs0 %>% group_by(metadata) %>% top_n(2, nt_rpm) %>% ungroup() %>% select(name) %>% unique()
+
+mgs0_top2 = filter(mgs0, name %in% top2_genus$name) 
+mgs0_not_top2 = anti_join(mgs0, mgs0_top2) %>% mutate(name = "z_other")
+mgs1 = bind_rows(mgs0_top2, mgs0_not_top2) %>% mutate(cluster = ifelse(metadata %in% samples_in_cluster, "cluster", "not in cluster"))
+
+# order samples manually so those with similar microbes are near each other
+mgs1$metadata=fct_relevel(mgs1$metadata, "pt61", "pt59", "pt64", "pt60", "pt69", "pt74", "pt75", "pt76", "pt79", "pt85", "pt80","pt66","pt56", "pt65", "pt58", "pt91","pt94", "pt63","pt70", "pt71","pt83","pt55","pt78", "pt82" ,"pt57","pt67","pt93", "pt81", "pt87", "pt72", "pt92","pt73", "pt84", "pt90",  "pt62","pt77" , "pt88", "pt86", "pt68", "pt95")
+
+
+p = mgs1 %>% rename(Genus = name) %>% ggplot() + geom_bar(aes(x=metadata, y=nt_rpm, fill=Genus),colour = "black", size = 0.1, position = "fill", stat = "identity") + 
+    scale_fill_manual(values = c("#A6CEE3","#1F78B4","black","#B2DF8A","#33A02C","#FFFF99","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#CAB2D6","#6A3D9A","#B15928", "grey")) +
+    xlab("Sample") + ylab("Proportion") + theme_bw() + facet_grid(cols = vars(cluster) , scales = "free", space="free", labeller = label_wrap_gen(width=5)) + theme(axis.text.x = element_text(size=8, angle=90, vjust=0.5))
+
+ggsave(paste0("plot_", dataset_number, "_mNGS_top2_per_sample.pdf"), plot = p, width = 11, height = 4)
+```
+
+```{r}
+sessionInfo()
+```

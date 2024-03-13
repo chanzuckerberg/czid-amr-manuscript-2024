@@ -1,0 +1,185 @@
+---
+title: "Plots for Application 1"
+author: CZ ID
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r}
+# global_options
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, echo=T)
+```
+
+
+```{r include=FALSE}
+library(tidyverse)
+library(magrittr)
+library(patchwork)
+options(tibble.width = Inf)
+options(scipen=999)
+```
+
+
+
+Define dataset
+```{r}
+dataset_number = "App1"
+
+# keep only medically used antibiotic drugs for analysis
+drug_class_to_ignore = c("disinfecting agents and antiseptics",
+                         "antibacterial free fatty acids",
+                         "aminocoumarin antibiotic", 
+                         "diaminopyrimidine antibiotic",
+                         "elfamycin antibiotic",
+                         "fusidane antibiotic",
+                         "phosphonic acid antibiotic",
+                         "nucleoside antibiotic", 
+                         "pleuromutilin antibiotic") 
+```
+
+
+
+Load metadata
+```{r}
+meta <- read.delim(paste0("dataset_ID_metadata_", dataset_number, ".tsv")) %>% 
+    mutate(amr_cov_filter=ifelse(str_detect(metadata, "culture"), 50, 5)) 
+
+# which samples to plot in heatmap
+meta_sample = meta %>% filter(!str_detect(metadata, "water")) 
+```
+
+
+Load and prep AMR table
+```{r}
+amr0 <- read.csv("combined_amr_results.csv") %>% 
+    filter(!(high_level_drug_class %in% drug_class_to_ignore)) %>% 
+    mutate(high_level_drug_class = str_remove_all(high_level_drug_class, paste(drug_class_to_ignore, collapse = "|"))) %>% 
+    mutate(high_level_drug_class = str_remove_all(high_level_drug_class, "^; | ;|; $")) %>% 
+    filter(high_level_drug_class != "") %>% 
+    #    filter(!str_detect(gene_family, "efflux pump")) %>% 
+    filter(model_type %in% c("protein homolog","protein variant")) %>% 
+    inner_join(meta, by="sample_name") %>% 
+    separate(gene_name, into = c("gene_name", "toss"), sep=" conferring resistance") %>% select(-toss) %>%  # shorten gene names like "E coli gene A with mutations conferring resistance to beta-lactam" to "E coli gene A with mutations"
+    mutate(gene_name = ifelse(model_type == "protein variant", paste0(gene_name, "*"), gene_name)) 
+
+# filter by coverage and read count
+# good contig hits
+amr0contig = amr0 %>%     
+    filter(num_contigs > 0)  %>%     
+    filter(contig_coverage_breadth > amr_cov_filter)  %>% 
+    mutate(detected_by = ifelse(cutoff=="Nudged", "Contig (nudged)", "Contig")) 
+
+# good read hits
+# also remove hits from samples that has contig hits in the same family in the same sample
+amr0read = amr0 %>%     
+    filter(num_reads > 5 & read_coverage_breadth > amr_cov_filter) %>% 
+    anti_join(amr0contig, by=c("sample_name", "gene_family")) %>% 
+    mutate(detected_by = "Read")
+
+# AMR_confidence needs to be numerical for heatmap to be clustered (this is not used for this plot)
+# detected_by: contig = 3, nudged = 2, read = 1
+amr = bind_rows(amr0contig, amr0read) %>% 
+    mutate(abx_class = ifelse(str_detect(high_level_drug_class, ";"), "multiple drug classes", high_level_drug_class)) %>% 
+    mutate(abx_class = str_remove(abx_class, " antibiotic")) %>%
+    mutate(AMR_confidence = case_when(
+        detected_by == "Read" ~ 1,
+        detected_by == "Contig (nudged)" ~ 2,
+        detected_by == "Contig" ~ 3)) %>% 
+    unique() 
+
+# check no duplicate gene_name for the same sample
+nrow(unique(select(amr, gene_name, sample_name))) == nrow(select(amr, gene_name, sample_name))
+
+# remove hits also found in water
+amr_sample =  amr %>% filter(!str_detect(metadata, "water")) 
+amr_water = amr %>% filter(str_detect(metadata, "water")) 
+
+amr_subset = anti_join(amr_sample, amr_water, by="gene_name") 
+
+# make sure all samples from metadata are included in amr table, even for those with no hits
+missing_samples = as.vector(unique(meta_sample$metadata))[!as.vector(unique(meta_sample$metadata)) %in% (amr_subset$metadata)]
+
+amr_subset = bind_rows(amr_subset, data.frame(metadata=missing_samples))
+
+# Edit E coli mdfA drug class based on https://github.com/arpcard/amr_curation/issues/91
+amr_subset %<>% mutate(abx_class = ifelse(gene_name =="Escherichia coli mdfA", "multiple drug classes", abx_class) )
+```
+
+
+ggplot heatmap for AMR
+```{r}
+# order the samples the same way as the input metadata
+amr_subset$metadata = fct_relevel(amr_subset$metadata, meta_sample$metadata)
+
+p1 = amr_subset %>% 
+    ggplot(aes(x = metadata, y = reorder(gene_name, desc(gene_name)), fill = detected_by)) +
+    geom_tile(color = "black", size = 0.1) +
+    scale_fill_manual(values = c("Contig"="#FFE238","Contig (nudged)"="orange", "Read"="indianred1")) +
+    labs(fill= "AMR confidence") +
+    theme(
+        axis.text.x = element_text(size=10, angle=90, vjust=0.5, hjust=1), axis.ticks.x = element_blank(), 
+        axis.text.y = element_text(size=9), axis.ticks.y=element_blank(),
+        panel.spacing = unit(0.3,"lines"),
+        panel.border =element_rect(colour = "black", fill=NA, size=1),
+        strip.text.x = element_blank(),
+        strip.text.y = element_text(size = 9, hjust=0, angle = 0),
+        panel.background=element_rect(fill="black", colour="black"),
+        plot.caption = element_text(hjust=1),
+        panel.grid = element_blank()) +
+    facet_grid(rows = vars(abx_class) , cols = vars(group), scales = "free", space="free", labeller = label_wrap_gen(width=5)) +
+    ylab("AMR gene") + xlab("Sample")
+```
+
+
+make a small heatmap for genome coverage
+```{r}
+meta_sample$metadata = fct_relevel(meta_sample$metadata, meta_sample$metadata)
+
+p2 = meta_sample %>% select(metadata, group, genome_coverage) %>% pivot_longer(cols = genome_coverage, names_to="item", values_to = "stats") %>% 
+    ggplot(aes(x = metadata, y = item, fill = stats)) +
+    geom_tile() + 
+    scale_fill_gradient(low = "white", high = "steelblue3") +
+    labs(fill= "Genome coverage") +
+    theme(
+        axis.text.x = element_blank(), axis.ticks.x = element_blank(),axis.title.x = element_blank(),
+        axis.text.y = element_text(size=9), axis.ticks.y=element_blank(),
+        panel.spacing = unit(0.3,"lines"),
+        panel.border =element_rect(colour = "black", fill=NA, size=1),
+        strip.text.x = element_blank(),
+        panel.background=element_rect(fill="black", colour="black"),
+        plot.caption = element_text(hjust=1),
+        panel.grid = element_blank()) +
+    facet_grid(cols=vars(group) , scales = "free", space="free") 
+
+```
+
+
+plot rPM from mNGS
+```{r}
+p3 = meta_sample %>% ggplot() + geom_bar(aes(x=metadata, y=nt_rpm), stat = "identity")  +    
+    theme(legend.position="none",
+          axis.text.x = element_blank(), axis.ticks.x = element_blank(), axis.title.x = element_blank(),
+          axis.text.y = element_text(size=8), axis.ticks.y=element_blank(),
+          panel.spacing = unit(0.3,"lines"),
+          plot.caption = element_text(hjust=1),
+          panel.grid = element_blank(),
+          strip.text = element_blank(),  # Hide facet labels
+          strip.background = element_blank()) +
+    facet_grid(cols=vars(group) , scales = "free", space="free") +
+    ylab("nt rpM") 
+
+```
+
+
+save the plot
+```{r, fig.height=10}
+p3/p2/p1 + plot_layout(heights = c(3, 0.5, 22))
+
+ggsave(paste0("plot_", dataset_number, "_AMR.pdf"), width =6, height = 9.5)
+```
+
+
+
+```{r}
+sessionInfo()
+```

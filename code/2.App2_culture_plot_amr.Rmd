@@ -1,0 +1,179 @@
+---
+title: "Plots for Application 2: AMR in cultured isolates"
+author: CZ ID
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r}
+# global_options
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, echo=T)
+```
+
+```{r include=FALSE}
+library(tidyverse)
+library(magrittr)
+options(tibble.width = Inf)
+options(scipen=999)
+library(ComplexHeatmap)
+library(circlize)
+```
+
+
+Plot function
+```{r}
+plot_heatmap <- function(df0, row_id, col_id, color_by, col_fun, na_number, column_order, cluster_columns, save_name) {  
+    # df0 is a table in the format of RGI output, w columns for gene name, AMR, drug class etc and each row is a hit.
+    # row_id is the column name in df0 that will become rows for the heatmap
+    # col_id is the column name in df0 that will become cols for the heatmap
+    # color_by is the column name in df0 to color the cells with in the heatmap
+    # col_fun can be left empty for continuous numeric qauntities, or can be pre-defined and supplied for either:
+    #   map from discrete character levels: col_fun = structure(c("red","black"), names = c("Strict","Perfect"))
+    #   map from continuous numeric quantities: col_fun = colorRamp2(c(min(m, na.rm=T), max(m, na.rm=T)), c("royalblue1", "indianred1"))
+    # na_number is what number/character in col_fun would corresponds to emtpy cells or cells w NA
+    # column_order specifies the order of columns = as.vector(unique(df$metadata)). Note this needs cluster_columns to be F to work, even though it should override the latter.   
+    # if cluster_columns = T, set column_order to NULL.
+    # Not used: row_dend_reorder = FALSE, column_dend_reorder, is whether to turn on clustering
+    # Not used: order_row provides the order of rows. = sort(colnames(df)) or = order(as.numeric(gsub("row", "", rownames(mat))))
+    
+    df = df0 %>% select(!!row_id, !!col_id, !!color_by) %>% unique() %>% spread(!!col_id, !!color_by, fill = na_number)  
+    
+    # create matrix to plot heatmap
+    m = select(df, -!!row_id) %>% as.matrix()
+    rownames(m) = df[[row_id]]
+    
+    # set continous color scale to be used if col_fun is not supplied
+    if ( missing(col_fun) ) {
+        col_fun = colorRamp2(c(min(m, na.rm=T), max(m, na.rm=T)), c("lightyellow", "indianred1"))
+    }
+    
+    # make the plot
+    # cell_fun is for formatting, not directly associated with the data input
+    p  = Heatmap(m, col=col_fun, 
+                 cluster_rows = T, cluster_columns = cluster_columns, column_order = column_order,
+                 show_row_dend = T, show_column_dend = cluster_columns,
+                 width = ncol(m)*unit(1.5, "mm"), height = nrow(m)*unit(1.2, "mm"),
+                 row_names_gp = gpar(fontsize = 3),
+                 column_names_gp = gpar(fontsize = 4),
+                 rect_gp = gpar(col = "grey50", lwd = unit(0.2,"mm")),
+                 heatmap_legend_param = list(title = color_by, title_gp = gpar(fontsize = 4), labels_gp = gpar(fontsize = 3), legend_height = unit(12, "mm"), legend_width = unit(10, "mm")))
+    
+    calc_ht_size = function(ht, unit = "inch") {
+        pdf(NULL)
+        ht = draw(ht)
+        w = ComplexHeatmap:::width(ht)
+        w = convertX(w, unit, valueOnly = TRUE)
+        h = ComplexHeatmap:::height(ht)
+        h = convertY(h, unit, valueOnly = TRUE)
+        dev.off()
+        
+        c(w, h)
+    }
+    
+    size2 = calc_ht_size(p)
+    
+    pdf(file=save_name, width = size2[1], height = size2[2])
+    draw(p)
+    dev.off()
+    
+    p4order = draw(p)
+    output = column_order(p4order)
+    return(output)
+}
+
+```
+
+
+Define dataset
+```{r}
+dataset_number = "App2"
+
+# keep only medically used antibiotic drugs for analysis
+drug_class_to_ignore = c("disinfecting agents and antiseptics",
+                         "antibacterial free fatty acids",
+                         "aminocoumarin antibiotic", 
+                         "diaminopyrimidine antibiotic",
+                         "elfamycin antibiotic",
+                         "fusidane antibiotic",
+                         "phosphonic acid antibiotic",
+                         "nucleoside antibiotic", 
+                         "pleuromutilin antibiotic") 
+```
+
+
+
+Load metadata
+```{r}
+meta <- read.delim(paste0("dataset_ID_metadata_", dataset_number, ".tsv")) %>% mutate(amr_cov_filter=ifelse(str_detect(type, "culture"), 50, 5)) 
+
+# which samples to plot in heatmap
+meta_sample = meta %>% filter(!str_detect(metadata, "water")) 
+```
+
+
+Load and prep AMR table
+```{r}
+amr0 <- read.csv("combined_amr_results.csv") %>% 
+    filter(!(high_level_drug_class %in% drug_class_to_ignore)) %>% 
+    mutate(high_level_drug_class = str_remove_all(high_level_drug_class, paste(drug_class_to_ignore, collapse = "|"))) %>% 
+    mutate(high_level_drug_class = str_remove_all(high_level_drug_class, "^; | ;|; $")) %>% 
+    filter(high_level_drug_class != "") %>% 
+    #    filter(!str_detect(gene_family, "efflux pump")) %>% 
+    filter(model_type %in% c("protein homolog","protein variant")) %>% 
+    inner_join(meta, by="sample_name") %>% 
+    separate(gene_name, into = c("gene_name", "toss"), sep=" conferring resistance") %>% select(-toss) %>%  # shorten gene names like "E coli gene A with mutations conferring resistance to beta-lactam" to "E coli gene A with mutations"
+    mutate(gene_name = ifelse(model_type == "protein variant", paste0(gene_name, "*"), gene_name)) 
+
+# filter by coverage and read count
+# good contig results
+amr0contig = amr0 %>%     
+    filter(num_contigs > 0)  %>%     
+    filter(contig_coverage_breadth > amr_cov_filter)  %>% 
+    mutate(detected_by = ifelse(cutoff=="Nudged", "Contig (nudged)", "Contig")) 
+
+# good read results
+# also remove hits from samples that has contig hits in the same family in the same sample
+amr0read = amr0 %>%     
+    filter(num_reads > 5 & read_coverage_breadth > amr_cov_filter) %>% 
+    anti_join(amr0contig, by=c("sample_name", "gene_family")) %>% 
+    mutate(detected_by = "Read")
+
+
+# AMR_confidence needs to be numerical for heatmap to be clustered 
+# detected_by: contig = 3, nudged = 2, read = 1
+amr = bind_rows(amr0contig, amr0read) %>% 
+    mutate(abx_class = ifelse(str_detect(high_level_drug_class, ";"), "multiple drug classes", high_level_drug_class)) %>% 
+    mutate(AMR_confidence = case_when(
+        detected_by == "Read" ~ 1,
+        detected_by == "Contig (nudged)" ~ 2,
+        detected_by == "Contig" ~ 3)) %>% 
+    unique() 
+
+# check no duplicate gene_name for the same sample
+nrow(unique(select(amr, gene_name, sample_name))) == nrow(select(amr, gene_name, sample_name))
+
+# remove hits also found in water
+amr_sample =  amr %>% filter(!str_detect(metadata, "water")) 
+amr_water = amr %>% filter(str_detect(metadata, "water")) 
+
+amr_subset = anti_join(amr_sample, amr_water, by="gene_name") 
+
+# make sure all samples from metadata are included in amr table, even for those with no hits
+missing_samples = as.vector(unique(meta_sample$metadata))[!as.vector(unique(meta_sample$metadata)) %in% (amr_subset$metadata)]
+
+amr_subset = bind_rows(amr_subset, data.frame(metadata=missing_samples)) %>% filter(str_detect(type, "culture"))
+```
+
+regular heatmap
+```{r}
+col_fun_t4 = structure(c("#FFE238","orange", "indianred1", "black"), names = c(3, 2, 1, 0))
+
+plot_col_order = amr_subset %>% plot_heatmap("gene_name", "metadata", "AMR_confidence", col_fun_t4, 0, NULL, T, paste0("plot_", dataset_number, "_culture_AMR.pdf"))
+
+```
+
+
+
+```{r}
+sessionInfo()
+```
