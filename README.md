@@ -9,6 +9,24 @@ CZ ID: https://czid.org/
 
 CZ ID help center: https://help.czid.org/
 
+CZ ID AMR workflow and changelogs: https://github.com/chanzuckerberg/czid-workflows/tree/main/workflows/amr
+
+The Comprehensive Antibiotic Resistance Database (CARD): https://card.mcmaster.ca/
+
+Resistance Gene Identifier (RGI): https://github.com/arpcard/rgi
+
+### Software and workflow versions used in the paper
+CZ ID mNGS workflow version 8.2.5
+
+CZ ID AMR workflow version 1.3.1 based on CARD RGI version 6.0.0
+
+CARD database versions 3.2.6
+
+CARD Resistomes & Variants database (WildCard): 4.0.0
+
+SKA2 version 0.3.2
+
+
 <br>
 
 ## Code of Conduct
