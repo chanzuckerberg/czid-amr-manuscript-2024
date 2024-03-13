@@ -4,7 +4,7 @@
 - Raw sequencing reads that were previously published can be found with these accession numbers:
 <img width="457" alt="image" src="https://github.com/chanzuckerberg/czid-amr-manuscript-2024/assets/20667188/0836e73f-3c38-4b10-881f-96dc6596d4d5">
 
-- All processed data can be downloaded from CZ ID public project `AMR_paper_2024`.
+- All processed data can be downloaded from CZ ID public project `AMR_paper_2024`. 
 
 - In the `Metagenomics` tab, select samples of interests and click the Download icon:
 <img width="1000" alt="image" src="https://github.com/chanzuckerberg/czid-amr-manuscript-2024/assets/20667188/ba2fe63b-28d1-4ba7-a296-b2c67e10226e">
@@ -34,3 +34,4 @@
 - To reproduce the downstream analysis on your local computer, put the results downloaded above into the same folder as the analysis scripts and the scripts will be able to find them.
 
 
+- A copy of the data downloaded from CZ ID, which was used for this manuscript, can be found in the [results folder](https://github.com/chanzuckerberg/czid-amr-manuscript-2024/tree/main/results) with names `amr_paper_2023_5929.zip` and `combined_amr_results.csv`.
