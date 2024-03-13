@@ -1,5 +1,12 @@
-# open-source-starter
-starter template for CZI open source projects
+## Simultaneous detection of pathogens and antimicrobial resistance genes with the open source, cloud-based, CZ ID pipeline
+Dan Lu, Katrina L. Kalantar, Victoria T. Chu, Abigail L. Glascock, Estella S. Guerrero, Nina Bernick, Xochitl Butcher, Karyna Rosario, Kirsty Ewing, Elizabeth Fahsbender, Olivia Holmes, Erin Hoops, Ann E. Jones, Ryan Lim, Suzette McCanny, Lucia Reynoso, Jennifer Tang, Omar Valenzuela, Peter M. Mourani, Amy J. Pickering, Amogelang R. Raphenya, Brian P. Alcock, Andrew G. McArthur, Charles R. Langelier
+
+### Abstract
+Emerging pathogens and antimicrobial resistance (AMR) are urgent threats to human health. Metagenomic next generation sequencing (mNGS) is revolutionizing our ability for their detection and surveillance, but few bioinformatics tools exist that can enable simultaneous analysis of both microbial pathogen and AMR gene sequences. To address this need, we developed the CZ ID AMR module, an open-access, cloud-based workflow designed to integrate detection of both microbes and AMR genes in mNGS and whole-genome sequencing (WGS) data. It is powered by the Comprehensive Antibiotic Resistance Database (CARD) and its associated Resistance Gene Identifier (RGI) software and works synergistically with the CZ ID short-read mNGS module to also enable comprehensive detection of microbes. We then demonstrate applications to mNGS and WGS data from cases of bacterial sepsis, bacterial pneumonia, two hospital outbreak investigations, and an environmental surveillance study. From each, we generate fresh insights that highlight the value of integrating pathogen identification and AMR profiling for both research and public health. In sum, the CZ ID AMR module combines microbial detection and AMR profiling from both mNGS and WGS data, facilitating integrated analyses of microbial genomic data for diverse applications.
+
+### Other Links & Resources
+CZ ID: https://czid.org/
+CZ ID help center: https://help.czid.org/
 
 ## Code of Conduct
 
