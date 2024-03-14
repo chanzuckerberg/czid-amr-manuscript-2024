@@ -8,6 +8,4 @@
 
   - Open the `.Rmd` files with Rstudio, edit as needed and knit to generate the plots.
 
-- `Run_remove_unpaired.sh` is used to remove unpaired reads from host-filtered fastq files downloaded from CZ ID to prepare them for SRA submission.
-
 - SKA2 folder contains scripts to calculate SNP distances between samples for Application 2.
