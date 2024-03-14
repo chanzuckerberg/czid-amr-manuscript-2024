@@ -19,7 +19,7 @@
 
 ### Processed data on CZ ID
 
-- All processed data can be downloaded from CZ ID public project `AMR_paper_2024`. 
+- All processed data can be downloaded from CZ ID public project `AMR example applications`. 
 
 - In the `Metagenomics` tab, select samples of interests and click the Download icon:
 <img width="1000" alt="image" src="https://github.com/chanzuckerberg/czid-amr-manuscript-2024/assets/20667188/ba2fe63b-28d1-4ba7-a296-b2c67e10226e">
