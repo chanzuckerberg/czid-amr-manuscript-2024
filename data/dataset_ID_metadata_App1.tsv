@@ -1,0 +1,8 @@
+sample_name	metadata	time	panel	nt_rpm	log10_nt_rpm	genome_coverage	coverage_depth	group
+App1_water	water	0:00	0	0	0	0	0	0
+App1_pt2_pre_plasma_mNGS	pt2_pre_plasma_mNGS	0:59	3	14	1.146128036	0	0	1
+App1_pt1_pre_plasma_mNGS	pt1_pre_plasma_mNGS	4:35	2	1	0	0	0	1
+App1_pt2_post_plasma_mNGS	pt2_post_plasma_mNGS	11:00	3	3017	3.47957531	28.7	0.9	2
+App1_pt1_post_serum_mNGS	pt1_post_serum_mNGS	12:15	2	32277	4.508893162	82.8	17.5	2
+App1_pt1_blood_culture	pt1_blood_culture	12:15	1	635139	5.802868781	84.8	47.2	3
+App1_platelet_bag_culture	platelet_bag_culture	11:15	1	596064	5.775292893	88.2	48.5	3
