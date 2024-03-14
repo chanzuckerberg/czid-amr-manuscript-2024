@@ -49,3 +49,8 @@
 - They are the input files for SKA2 for the SNP distance analysis.
 
 - Note these fastq files have unpaired reads which were removed (by [this code](https://github.com/chanzuckerberg/czid-amr-manuscript-2024/blob/main/code/Run_remove_unpaired.sh)) before SRA submission. This step didn't change SNP distance.
+
+
+### Metadata files
+
+- The metadata files in this folder specify how sample names on CZ ID match to the sample names on the plot. The `.Rmd` files in the `/code` folder need them as input files. 
