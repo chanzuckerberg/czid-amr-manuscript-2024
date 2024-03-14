@@ -22,7 +22,7 @@
 - All processed data can be downloaded from CZ ID public project `AMR example applications`. 
 
 - In the `Metagenomics` tab, select samples of interests and click the Download icon:
-<img width="1000" alt="image" src="https://github.com/chanzuckerberg/czid-amr-manuscript-2024/assets/20667188/ba2fe63b-28d1-4ba7-a296-b2c67e10226e">
+<img width="800" alt="image" src="https://github.com/chanzuckerberg/czid-amr-manuscript-2024/assets/20667188/0c4d0c94-f4aa-432f-b9e3-96adbb3b3849">
 <br>
 <br>
 
@@ -37,7 +37,9 @@
 <br>
 
 - In the `Antimicrobial Resistance` tab, select samples of interests and click the Download icon:
-<img width="1000" alt="image" src="https://github.com/chanzuckerberg/czid-amr-manuscript-2024/assets/20667188/b7d427ae-9081-459e-8a18-e116089565e0">
+<img width="800" alt="image" src="https://github.com/chanzuckerberg/czid-amr-manuscript-2024/assets/20667188/e8740ef6-a779-4f34-9daa-e6a23f559207">
+
+
 <br>
 <br>
 
@@ -46,10 +48,10 @@
 <br>
 <br>
 
-- To reproduce the downstream analysis on your local computer, put the results downloaded above into the same folder as the analysis scripts and the scripts will be able to find them.
+- To reproduce the downstream analysis on your local computer, put the results downloaded above into the same folder as the analysis scripts in the `code` folder and the scripts will be able to find them.
 
 
-- A copy of the data downloaded from CZ ID, which was used for this manuscript, can be found in the [results folder](https://github.com/chanzuckerberg/czid-amr-manuscript-2024/tree/main/results) with names `amr_paper_2023_5929.zip` and `combined_amr_results.csv`.
+- A copy of the data downloaded from CZ ID, which was used for this manuscript, can be found in the `results` folder with names `amr_paper_2023_5929.zip` and `combined_amr_results.csv`.
 
 <br>
 <br>
@@ -57,7 +59,7 @@
 ### Host-filtered sequencing reads
 
 - These reads can be downloaded from the `Metagenomics` tab Download button:
-<img width="484" alt="image" src="https://github.com/chanzuckerberg/czid-amr-manuscript-2024/assets/20667188/105b4c0f-bcd1-458f-8e20-188c2aa4c499">
+<img width="400" alt="image" src="https://github.com/chanzuckerberg/czid-amr-manuscript-2024/assets/20667188/105b4c0f-bcd1-458f-8e20-188c2aa4c499">
 
 - They are the input files for SKA2 for the SNP distance analysis.
 
