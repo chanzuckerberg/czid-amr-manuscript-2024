@@ -8,10 +8,10 @@
 
 [Metadata files](#metadata-files)
 
-### Raw sequencing reads
-- Raw sequencing reads that are newly published with this paper are under SRA BioProject [PRJNA1086943](https://www.ncbi.nlm.nih.gov/sra/?term=PRJNA1086943).
+### Sequencing reads
+- Sequencing reads (post quality- and host-filtering) that are newly published with this paper are under SRA BioProject [PRJNA1086943](https://www.ncbi.nlm.nih.gov/sra/?term=PRJNA1086943).
   
-- Raw sequencing reads that were previously published can be found with these accession numbers:
+- Sequencing reads that were previously published can be found with these accession numbers:
 <img width="460" alt="image" src="https://github.com/chanzuckerberg/czid-amr-manuscript-2024/assets/20667188/8d91c4cb-d9ba-4d74-befc-65e752d0995b">
 
 <br>
