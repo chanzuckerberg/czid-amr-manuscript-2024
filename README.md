@@ -21,7 +21,7 @@ Resistance Gene Identifier (RGI): https://github.com/arpcard/rgi
 ### Software and workflow versions used in the paper
 CZ ID mNGS workflow version 8.2.5
 
-CZ ID AMR workflow version 1.3.1 based on CARD RGI version 6.0.0
+CZ ID AMR workflow version 1.4.2 based on CARD RGI version 6.0.3
 
 CARD database versions 3.2.6
 
