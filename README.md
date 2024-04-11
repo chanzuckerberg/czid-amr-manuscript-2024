@@ -6,7 +6,7 @@ Antimicrobial resistant (AMR) pathogens represent urgent threats to human health
 
 
 ### Links & Resources
-Explore this project on CZ ID (requires CZ ID account): https://czid.org/home?project_id=5929
+⭐ Explore this project on CZ ID (requires CZ ID login): https://czid.org/home?project_id=5929
 
 CZ ID: https://czid.org/
 
