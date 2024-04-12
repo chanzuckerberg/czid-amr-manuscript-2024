@@ -8,6 +8,8 @@ Emerging pathogens and antimicrobial resistance (AMR) are urgent threats to huma
 ### Links & Resources
 ⭐ Explore this project on CZ ID (requires CZ ID login): https://czid.org/home?project_id=5929
 
+⭐ Plot heatmaps from AMR results: https://github.com/chanzuckerberg/czid-amr-heatmap
+
 CZ ID: https://czid.org/
 
 CZ ID help center: https://help.czid.org/
