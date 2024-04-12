@@ -1,0 +1,178 @@
+---
+title: "Plots for Application 4: AMR results"
+author: CZ ID
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r}
+# global_options
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, echo=T)
+```
+
+```{r include=FALSE}
+library(tidyverse)
+library(magrittr)
+options(tibble.width = Inf)
+options(scipen=999)
+library(patchwork)
+```
+
+
+Define dataset
+```{r}
+dataset_number = "App4"
+
+# keep only medically used antibiotic drugs for analysis
+drug_class_to_ignore = c("disinfecting agents and antiseptics",
+                         "antibacterial free fatty acids",
+                         "aminocoumarin antibiotic", 
+                         "diaminopyrimidine antibiotic",
+                         "elfamycin antibiotic",
+                         "fusidane antibiotic",
+                         "phosphonic acid antibiotic",
+                         "nucleoside antibiotic", 
+                         "pleuromutilin antibiotic") 
+```
+
+
+
+Load metadata
+```{r}
+meta <- read.delim(paste0("dataset_ID_metadata_", dataset_number, ".tsv")) %>% mutate(amr_cov_filter=ifelse(str_detect(metadata, "culture"), 50, 10)) 
+
+# which samples to plot in heatmap
+meta_sample = meta %>% filter(!str_detect(metadata, "water")) 
+```
+
+
+
+Load and prep AMR table, format species
+```{r}
+amr0 <- read.csv("combined_amr_results.csv") %>% 
+    inner_join(meta, by="sample_name") %>% 
+    mutate(read_species=str_replace_all(read_species, "\\s*\\(.*?\\):.*?;", ";"), contig_species=str_replace_all(contig_species, "\\s*\\ \\(.*?\\)", ";"))  %>% 
+    mutate(amr_species= str_c(contig_species, read_species, sep = " ")) %>%
+    mutate(amr_species = strsplit(amr_species, ";| ;|; ") %>%
+               map_chr(~ paste(sort(unique(trimws(.x))), collapse = "; "))) %>%
+    mutate(amr_species= str_replace(amr_species, "; Unknown taxonomy", "")) %>%
+    mutate(amr_species= str_replace(amr_species, "Unknown taxonomy; ", "")) %>%
+    mutate(amr_species = ifelse(amr_species=="", "Unknown taxonomy", amr_species)) %>% 
+    mutate(PA_found = ifelse(str_detect(amr_species, "Pseudomonas"), "Pseudomonas", "Not Pseudomonas")) %>% 
+    mutate(PA_found = ifelse(str_detect(amr_species, "Pseudomonas aeruginosa"), "Pseudomonas aeruginosa", PA_found)) 
+
+```
+
+
+
+QC. Did not convert read results to gene family to preserve hit - species mapping
+```{r}
+amr0 %<>% filter(!(high_level_drug_class %in% drug_class_to_ignore)) %>% 
+    mutate(high_level_drug_class = str_remove_all(high_level_drug_class, paste(drug_class_to_ignore, collapse = "|"))) %>% 
+    mutate(high_level_drug_class = str_remove_all(high_level_drug_class, "^; | ;|; $")) %>% 
+    filter(high_level_drug_class != "") %>% 
+    #    filter(!str_detect(gene_family, "efflux pump")) %>% 
+    filter(model_type %in% c("protein homolog","protein variant")) %>% 
+    separate(gene_name, into = c("gene_name", "toss"), sep=" conferring resistance") %>% select(-toss) %>%  # shorten gene names like "E coli gene A with mutations conferring resistance to beta-lactam" to "E coli gene A with mutations"
+    mutate(gene_name = ifelse(model_type == "protein variant", paste0(gene_name, "*"), gene_name)) 
+
+
+# filter by coverage and read count
+# good contig results
+amr0contig = amr0 %>%     
+    filter(num_contigs > 0)  %>%     
+    filter(contig_coverage_breadth > amr_cov_filter)  %>% 
+    mutate(detected_by = ifelse(cutoff=="Nudged", "Contig (nudged)", "Contig")) 
+
+
+# good read results
+# also remove hits from samples that has contig hits in the same family in the same sample
+amr0read = amr0 %>%     
+    filter(num_reads > 5 & read_coverage_breadth > amr_cov_filter) %>% 
+    anti_join(amr0contig, by=c("sample_name", "gene_family")) %>% 
+    mutate(detected_by = "Read")
+
+
+# AMR_confidence needs to be numerical for heatmap to be clustered (this is not used for this plot)
+# detected_by: contig = 3, nudged = 2, read = 1
+amr = bind_rows(amr0contig, amr0read) %>% 
+    mutate(abx_class = ifelse(str_detect(high_level_drug_class, ";"), "multiple drug classes", high_level_drug_class)) %>% 
+    mutate(abx_class = str_remove(abx_class, " antibiotic")) %>%
+    mutate(AMR_confidence = case_when(
+        detected_by == "Read" ~ 1,
+        detected_by == "Contig (nudged)" ~ 2,
+        detected_by == "Contig" ~ 3)) %>% 
+    unique() 
+
+# check no duplicate gene_name for the same sample
+nrow(unique(select(amr, gene_name, sample_name))) == nrow(select(amr, gene_name, sample_name))
+
+# remove hits also found in water
+amr_sample =  amr %>% filter(!str_detect(metadata, "water")) 
+amr_water = amr %>% filter(str_detect(metadata, "water")) 
+
+amr_subset = anti_join(amr_sample, amr_water, by="gene_name") 
+
+# make sure all samples from metadata are included in amr table, even for those with no hits
+missing_samples = as.vector(unique(meta_sample$metadata))[!as.vector(unique(meta_sample$metadata)) %in% (amr_subset$metadata)]
+
+amr_subset = bind_rows(amr_subset, data.frame(metadata=missing_samples))
+
+
+```
+
+
+
+ggplot heatmap
+```{r}
+# order the samples the same way as the input metadata
+amr_subset$metadata = fct_relevel(amr_subset$metadata, meta_sample$metadata)
+
+p1 = amr_subset  %>% 
+    ggplot(aes(x = metadata, y = reorder(gene_name, desc(gene_name)), fill = detected_by)) +
+    geom_tile(color = "black", size = 0.1) +
+    scale_fill_manual(values = c("Contig"="#FFE238","Contig (nudged)"="orange", "Read"="indianred1")) +
+    labs(fill= "AMR confidence") +
+    theme(
+        axis.text.x = element_text(size=10, angle=90, vjust=0.5, hjust = 1), axis.ticks.x = element_blank(),
+        axis.text.y = element_text(size=9), axis.ticks.y=element_blank(),
+        panel.spacing = unit(0.3,"lines"),
+        panel.border =element_rect(colour = "black", fill=NA, size=1),
+        strip.text.y = element_text(size = 9, hjust=0, angle = 0),
+        panel.background=element_rect(fill="black", colour="black"),
+        plot.caption = element_text(hjust=1),
+        panel.grid = element_blank()) +
+    facet_grid(rows = vars(abx_class) , scales = "free", space="free", labeller = label_wrap_gen(width=5)) +
+    ylab("AMR gene") + xlab("Sample")
+
+```
+
+
+plot species, exactly the same layout as the AMR plot
+```{r}
+p2 = amr_subset %>% 
+    ggplot(aes(x = metadata, y = reorder(gene_name, desc(gene_name)), fill = PA_found)) +
+    geom_tile(color = "black", size = 0.1) +
+    scale_fill_manual(values = c("Not Pseudomonas"="darkgrey", "Pseudomonas aeruginosa"="dodgerblue", "Pseudomonas"="mediumpurple")) +
+    labs(fill= "Pathogen of origin") +
+    theme(
+        axis.text.x = element_text(size=10, angle=90, vjust=0.5, hjust = 1), axis.ticks.x = element_blank(),
+        axis.text.y = element_text(size=9), axis.ticks.y=element_blank(),
+        panel.spacing = unit(0.3,"lines"),
+        panel.border =element_rect(colour = "black", fill=NA, size=1),
+        strip.text.y = element_text(size = 9, hjust=0, angle = 0),
+        panel.background=element_rect(fill="black", colour="black"),
+        plot.caption = element_text(hjust=1),
+        panel.grid = element_blank()) +
+    facet_grid(rows = vars(abx_class) , scales = "free", space="free", labeller = label_wrap_gen(width=5)) +
+    ylab("AMR gene") + xlab("Sample")
+
+
+p = p1+p2
+
+ggsave(paste0("plot_", dataset_number, "_AMR.pdf"), plot = p, width = 16, height = 9)
+```
+
+```{r}
+sessionInfo()
+```

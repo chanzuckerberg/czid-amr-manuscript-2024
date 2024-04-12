@@ -1,0 +1,98 @@
+---
+title: "Plots for Application 2: SNP matrix of cultured isolates"
+author: CZ ID
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+This used results from run_ska2_strict.sh
+
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set( warning=FALSE, message=FALSE)
+```
+
+
+```{r include=FALSE}
+library(tidyverse)
+library(magrittr)
+options(tibble.width = Inf)
+options(scipen=999)
+library(ComplexHeatmap)
+library(circlize)
+```
+
+
+```{r}
+SNP_distance_heatmap <- function(pairwise_distance_df, samples) {
+    
+    if (length(samples) > 2) {
+        
+        df1 <- pairwise_distance_df %>% 
+            select(Sample1, Sample2, Distance) %>% 
+            rename(i=Sample1, j=Sample2) %>% 
+            filter(i %in% samples & j %in% samples) %>% unique()   # pairwise_distance_df has strainA strainB and their concordance
+        
+        df2 <- df1 %>% rename(i=j, j=i)
+        
+        df = bind_rows(df1, df2) %>% unique() %>% spread(j, Distance) 
+        
+        if (nrow(df) > 2) {   
+            
+            if (nrow(df) <= 10) { font_size = 12}
+            if (nrow(df) > 10 & nrow(df) < 15) { font_size = 10}
+            if (nrow(df) >= 15 & nrow(df) < 30) { font_size = 8}
+            if (nrow(df) >= 30 ) { font_size = 7}
+            
+            # make heatmap of concordance
+            m = select(df, -i) %>% as.matrix()
+            rownames(m) = df$i
+            
+            col_fun = colorRamp2(c(min(m, na.rm=T), 500, max(m, na.rm=T)), c("gold", "indianred1", "royalblue1"))
+            
+            p  = Heatmap(m, col=col_fun, rect_gp = gpar(col = "white", lwd = 2), cell_fun = function(j, i, x, y, width, height, fill) {
+                grid.text( m[i, j], x, y, gp = gpar(fontsize = font_size)) 
+            })
+            
+            print(p)
+        } else { print("No more than 2 samples. Can't plot heatmap.")}
+        
+    } else { print("No more than 2 samples. Can't plot heatmap.")}
+}
+
+
+```
+
+
+
+
+list of samples to zoom in
+```{r}
+cluster = c("pt79","pt76","pt75","pt74","pt69","pt64","pt61","pt60","pt59")
+
+```
+
+
+make plot
+```{r, fig.width=15, fig.height=12}
+distances_ska2s <- read.delim("distances_ska2_strict.txt") 
+
+SNP_distance_heatmap(distances_ska2s, unique(distances_ska2s$Sample1))
+
+pdf("plot_App2_SNP_dist.pdf", width = 15, height = 12)
+ht <- SNP_distance_heatmap(distances_ska2s, unique(distances_ska2s$Sample1))
+draw(ht)
+dev.off()
+```
+
+```{r}
+# zoom into cluster
+# not used in paper
+SNP_distance_heatmap(distances_ska2s, cluster)
+```
+
+
+
+```{r}
+sessionInfo()
+```
